@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>클래스룸 통합 대시보드</title>
+    <!-- Google Fonts & Icon Set -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <!-- Global Loader -->
+    <div id="loader" class="loader-overlay">
+      <div class="loader-content">
+        <div class="spinner"></div>
+        <p id="loader-text">대시보드 데이터를 로딩 중입니다...</p>
+      </div>
+    </div>
+
+    <!-- Registration Screen (Hidden by default) -->
+    <div id="registration-screen" class="screen hidden">
+      <div class="glass-card auth-card animate-fade-in">
+        <div class="brand">
+          <i class="fa-solid fa-graduation-cap brand-icon"></i>
+          <h1>Classroom Hub</h1>
+        </div>
+        <h2>신규 사용자 등록</h2>
+        <p class="subtitle">대시보드를 이용하기 위해 프로필을 입력해주세요.</p>
+        
+        <form id="register-form" onsubmit="handleRegistration(event)">
+          <div class="form-group">
+            <label for="reg-email">구글 계정 이메일</label>
+            <input type="email" id="reg-email" readonly disabled>
+          </div>
+          <div class="form-group">
+            <label for="reg-name">이름</label>
+            <input type="text" id="reg-name" required placeholder="성함을 입력하세요">
+          </div>
+          <div class="form-row">
+            <div class="form-group col">
+              <label for="reg-role">역할</label>
+              <select id="reg-role" required>
+                <option value="Teacher" selected>교사 (관리자)</option>
+                <option value="Student">학생 (참여자)</option>
+              </select>
+            </div>
+            <div class="form-group col">
+              <label for="reg-dept">소속/부서</label>
+              <input type="text" id="reg-dept" required placeholder="예: 디자인과, 1학년 2반">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block">
+            <i class="fa-solid fa-user-plus icon-left"></i>등록 및 시작하기
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Dashboard Screen (Hidden by default) -->
+    <div id="dashboard-screen" class="screen hidden">
+      <!-- Top Navigation Bar -->
+      <header class="glass-header">
+        <div class="header-left">
+          <i class="fa-solid fa-graduation-cap logo-icon"></i>
+          <span class="logo-text">Classroom Dashboard</span>
+        </div>
+        <div class="header-right">
+          <!-- Database Sheet Link -->
+          <a id="db-link" href="#" target="_blank" class="db-sheet-btn" title="스프레드시트 DB 열기">
+            <i class="fa-solid fa-file-excel"></i>
+            <span>Sheet DB</span>
+          </a>
+          <!-- User Profile -->
+          <div class="user-profile">
+            <div class="user-avatar" id="user-avatar-char">C</div>
+            <div class="user-info">
+              <div id="user-display-name" class="user-name">User Name</div>
+              <div id="user-display-role" class="user-role">Teacher</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Layout -->
+      <div class="main-container">
+        <!-- Sidebar Controls -->
+        <aside class="sidebar glass-card">
+          <div class="sidebar-section">
+            <label class="sidebar-label">클래스룸 수업 선택</label>
+            <div class="custom-select-wrapper">
+              <select id="course-selector" onchange="handleCourseChange()">
+                <option value="" disabled selected>수업을 로드하는 중...</option>
+              </select>
+            </div>
+          </div>
+
+          <nav class="sidebar-nav">
+            <button id="tab-btn-submission" class="nav-item active" onclick="switchTab('submission')">
+              <i class="fa-solid fa-chart-column"></i>
+              <span>과제 제출 현황</span>
+            </button>
+            <button id="tab-btn-feedback" class="nav-item" onclick="switchTab('feedback')">
+              <i class="fa-solid fa-table-cells"></i>
+              <span>피드백 매트릭스</span>
+            </button>
+          </nav>
+        </aside>
+
+        <!-- Content Area -->
+        <main class="content-area">
+          <!-- Empty State (Shown when no course is selected) -->
+          <div id="empty-state" class="glass-card empty-container animate-fade-in">
+            <i class="fa-solid fa-arrow-left empty-icon animate-bounce"></i>
+            <h3>분석할 클래스룸 수업을 선택해주세요</h3>
+            <p>좌측 사이드바에서 활성화된 수업을 선택하면 실시간 제출 현황 및 피드백 데이터를 조회할 수 있습니다.</p>
+          </div>
+
+          <!-- Tab Content 1: Submission Status -->
+          <div id="tab-content-submission" class="tab-pane hidden">
+            <!-- Coursework Selector Header -->
+            <div class="glass-card selector-card">
+              <div class="card-header">
+                <h2><i class="fa-solid fa-clipboard-list header-icon"></i>과제 목록</h2>
+              </div>
+              <div class="coursework-grid" id="coursework-list">
+                <!-- Coursework cards populated by JS -->
+              </div>
+            </div>
+
+            <!-- Submission Stats & List (Hidden until a coursework is selected) -->
+            <div id="submission-details-container" class="hidden">
+              <div class="stats-row">
+                <!-- Summary Chart Card -->
+                <div class="glass-card stat-card flex-2">
+                  <h3>제출 통계 요약</h3>
+                  <div class="chart-container">
+                    <div class="pie-chart-wrapper">
+                      <svg viewBox="0 0 100 100" class="donut-chart" id="donut-chart">
+                        <circle cx="50" cy="50" r="40" class="donut-track"></circle>
+                        <circle cx="50" cy="50" r="40" class="donut-segment" id="donut-segment-submitted"></circle>
+                        <circle cx="50" cy="50" r="40" class="donut-segment" id="donut-segment-missing"></circle>
+                        <g class="donut-text">
+                          <text x="50" y="47" class="donut-number" id="donut-percent">0%</text>
+                          <text x="50" y="62" class="donut-label">제출 완료</text>
+                        </g>
+                      </svg>
+                    </div>
+                    <div class="chart-legend">
+                      <div class="legend-item">
+                        <span class="legend-color color-submitted"></span>
+                        <span class="legend-label">제출/채점 완료 (<span id="count-submitted">0</span>)</span>
+                      </div>
+                      <div class="legend-item">
+                        <span class="legend-color color-missing"></span>
+                        <span class="legend-label">미제출 (<span id="count-missing">0</span>)</span>
+                      </div>
+                      <div class="legend-item total-legend">
+                        <span>전체 학생 수: <span id="count-total">0</span>명</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Active Actions Card -->
+                <div class="glass-card stat-card flex-1 flex-col justify-between">
+                  <div>
+                    <h3>관리 도구</h3>
+                    <p class="card-desc">미제출자를 추출하고 독촉 이메일을 전송할 수 있습니다.</p>
+                  </div>
+                  <div class="action-buttons-wrap">
+                    <button class="btn btn-warning btn-block" onclick="openMailModal()">
+                      <i class="fa-solid fa-paper-plane icon-left"></i>미제출자 독촉 메일 전송
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Student Submission Table -->
+              <div class="glass-card table-card animate-slide-up">
+                <div class="card-header table-header-flex">
+                  <h3 id="selected-work-title">과제 세부 정보</h3>
+                  <div class="table-filters">
+                    <button class="table-filter-btn active" id="filter-all" onclick="filterSubmissions('all')">전체</button>
+                    <button class="table-filter-btn" id="filter-submitted" onclick="filterSubmissions('submitted')">제출/채점완료</button>
+                    <button class="table-filter-btn" id="filter-missing" onclick="filterSubmissions('missing')">미제출</button>
+                  </div>
+                </div>
+                <div class="table-responsive">
+                  <table class="custom-table" id="submissions-table">
+                    <thead>
+                      <tr>
+                        <th>이름</th>
+                        <th>이메일</th>
+                        <th>제출 상태</th>
+                        <th>획득 점수</th>
+                        <th>지각 여부</th>
+                        <th>최종 업데이트</th>
+                      </tr>
+                    </thead>
+                    <tbody id="submissions-list-body">
+                      <!-- Table rows populated by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab Content 2: Feedback Matrix -->
+          <div id="tab-content-feedback" class="tab-pane hidden">
+            <div class="glass-card table-card animate-slide-up">
+              <div class="card-header table-header-flex">
+                <div>
+                  <h2><i class="fa-solid fa-table-cells header-icon"></i>피드백 & 성적 매트릭스</h2>
+                  <p class="subtitle mt-1">학생별 과제 성적 및 제출 상태를 격자형식으로 종합 진단합니다.</p>
+                </div>
+                <button class="btn btn-secondary" onclick="loadFeedbackMatrix()">
+                  <i class="fa-solid fa-rotate"></i> 새로고침
+                </button>
+              </div>
+              <div class="matrix-responsive">
+                <table class="custom-table matrix-table" id="matrix-table">
+                  <thead>
+                    <!-- Headers populated by JS -->
+                  </thead>
+                  <tbody>
+                    <!-- Matrix rows populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Mail Send Modal (Hidden by default) -->
+    <div id="mail-modal" class="modal-overlay hidden">
+      <div class="glass-card modal-card animate-scale-in">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-envelope-open-text header-icon text-warning"></i> 미제출 독촉 이메일 발송</h3>
+          <button class="modal-close-btn" onclick="closeMailModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-desc">
+            현재 과제를 아직 제출하지 않은 <strong><span id="mail-recipient-count">0</span>명</strong>의 학생에게 알림 이메일을 전송합니다.
+          </p>
+          <div class="recipient-pills" id="mail-recipient-pills">
+            <!-- Emails will be rendered here -->
+          </div>
+          <div class="form-group mt-3">
+            <label for="mail-body-template">메일 본문 내용</label>
+            <textarea id="mail-body-template" rows="8">안녕하세요.
+클래스룸에 등록된 아래 과제가 아직 제출되지 않았습니다. 기한 내에 과제를 완료해주시기 바랍니다.
+
+- 과제명: {coursework_title}
+- 기한: 미제출 또는 미채점 상태입니다.
+
+질문 사항이 있는 경우 이메일 또는 클래스룸 댓글로 남겨주세요.
+감사합니다.</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeMailModal()">취소</button>
+          <button class="btn btn-warning" onclick="sendNotifications()">
+            <i class="fa-solid fa-paper-plane icon-left"></i>이메일 일괄 전송
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="main.js"></script>
+  </body>
+</html>
