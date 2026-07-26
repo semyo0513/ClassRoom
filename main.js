@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzmnJmhef49YLNXP0h1AdEC-w1vVYt9KgcglX_apuZnmDc28RPXDKhvGZkKP6Wd5NpO/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyvSZMd27oDkIP7mHRNVZPxML6ydmep3AhT2AIFRJuLAjUt-l2ReiH3mNSIawmhlJwM/exec";
 
 // google.script.run Mock for Fetch API
 const google = {
