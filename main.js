@@ -120,6 +120,9 @@ function showToast(message, type = 'success') {
 function initApp() {
   showLoader('대시보드 설정을 불러오는 중입니다...');
   
+  // localStorage에 저장된 이메일을 payload로 전달 (USER_DEPLOYING 환경에서 세션 이메일이 빈값이기 때문)
+  const storedEmail = localStorage.getItem('classroom_user_email') || '';
+  
   google.script.run
     .withSuccessHandler((response) => {
       hideLoader();
@@ -132,30 +135,13 @@ function initApp() {
         
         if (!response.isRegistered) {
           // Show Registration Form
-          document.getElementById('reg-email').value = response.email || '';
+          document.getElementById('reg-email').value = response.email || storedEmail || '';
           document.getElementById('registration-screen').classList.remove('hidden');
           document.getElementById('dashboard-screen').classList.add('hidden');
           showToast('최초 접속 감지: 회원가입을 완료해주세요.', 'warning');
         } else {
           // Show Main Dashboard
-          document.getElementById('registration-screen').classList.add('hidden');
-          document.getElementById('dashboard-screen').classList.remove('hidden');
-          
-          if (response.dbUrl) {
-            document.getElementById('db-link').href = response.dbUrl;
-          }
-          
-          if (response.userProfile) {
-            document.getElementById('user-display-name').textContent = response.userProfile.name;
-            document.getElementById('user-display-role').textContent = 
-              response.userProfile.role === 'Teacher' ? '교사' : '학생';
-            document.getElementById('user-avatar-char').textContent = 
-              response.userProfile.name.charAt(0).toUpperCase();
-          }
-          
-          state.courses = response.courses || [];
-          populateCourses(state.courses);
-          showToast(`${response.userProfile.name} 님, 환영합니다! 대시보드 로딩 완료.`, 'success');
+          showDashboard(response);
         }
       } else {
         showToast('데이터 조회 중 오류: ' + response.error, 'danger');
@@ -165,7 +151,28 @@ function initApp() {
       hideLoader();
       showToast('구글 서버와 연결할 수 없습니다. 권한 승인이 필요할 수 있습니다.', 'danger');
     })
-    .dispatch('getInitData', null);
+    .dispatch('getInitData', storedEmail ? { email: storedEmail } : null);
+}
+
+function showDashboard(response) {
+  document.getElementById('registration-screen').classList.add('hidden');
+  document.getElementById('dashboard-screen').classList.remove('hidden');
+  
+  if (response.dbUrl) {
+    document.getElementById('db-link').href = response.dbUrl;
+  }
+  
+  if (response.userProfile) {
+    document.getElementById('user-display-name').textContent = response.userProfile.name;
+    document.getElementById('user-display-role').textContent = 
+      response.userProfile.role === 'Teacher' ? '교사' : '학생';
+    document.getElementById('user-avatar-char').textContent = 
+      response.userProfile.name.charAt(0).toUpperCase();
+  }
+  
+  state.courses = response.courses || [];
+  populateCourses(state.courses);
+  showToast(`${response.userProfile.name} 님, 환영합니다! 대시보드 로딩 완료.`, 'success');
 }
 
 // --- User Registration ---
@@ -175,8 +182,9 @@ function handleRegistration(event) {
   const name = document.getElementById('reg-name').value.trim();
   const role = document.getElementById('reg-role').value;
   const dept = document.getElementById('reg-dept').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
   
-  if (!name || !dept) {
+  if (!name || !dept || !email) {
     showToast('모든 필수 항목을 입력해주세요.', 'warning');
     return;
   }
@@ -185,18 +193,31 @@ function handleRegistration(event) {
     name: name,
     role: role,
     department: dept,
-    email: document.getElementById('reg-email').value
+    email: email
   };
   
   showLoader('등록 정보를 제출하는 중입니다...');
   
   google.script.run
     .withSuccessHandler((response) => {
+      hideLoader();
       if (response.success) {
+        // localStorage에 이메일 저장 (다음 접속 시 세션 없이도 인식 가능)
+        localStorage.setItem('classroom_user_email', email);
         showToast('신규 사용자 등록 성공!', 'success');
-        initApp(); // reload setup
+        // getInitData를 다시 호출하지 않고 직접 대시보드로 전환
+        const mockResponse = {
+          success: true,
+          email: email,
+          isRegistered: true,
+          userProfile: { name: name, role: role, department: dept },
+          courses: [],
+          dbUrl: ''
+        };
+        showDashboard(mockResponse);
+        // 백그라운드에서 클래스룸 목록 로드
+        loadCourseWorkAfterRegister();
       } else {
-        hideLoader();
         showToast('등록 에러: ' + response.error, 'danger');
       }
     })
@@ -205,6 +226,22 @@ function handleRegistration(event) {
       showToast('네트워크 통신 중 오류가 발생했습니다.', 'danger');
     })
     .dispatch('registerUser', payload);
+}
+
+function loadCourseWorkAfterRegister() {
+  const storedEmail = localStorage.getItem('classroom_user_email') || '';
+  google.script.run
+    .withSuccessHandler((response) => {
+      if (response.success && response.courses) {
+        state.courses = response.courses;
+        populateCourses(state.courses);
+        if (response.dbUrl) {
+          document.getElementById('db-link').href = response.dbUrl;
+        }
+      }
+    })
+    .withFailureHandler(() => {})
+    .dispatch('getInitData', storedEmail ? { email: storedEmail } : null);
 }
 
 // --- Populate Course selector ---

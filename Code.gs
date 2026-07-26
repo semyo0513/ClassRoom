@@ -106,13 +106,16 @@ function ensureHeaders(ss) {
 
 /**
  * Checks if the current user is registered, and returns initial dashboard data (courses)
+ * payload: { email: string } - 프론트엔드에서 localStorage의 이메일을 전달 (USER_DEPLOYING 환경 대응)
  */
-function getInitData() {
+function getInitData(payload) {
+  // USER_DEPLOYING 환경에서는 Session.getActiveUser().getEmail()이 빈값 반환
+  // 따라서 프론트엔드에서 localStorage에 저장한 이메일을 payload로 받아 사용
   var email = Session.getActiveUser().getEmail();
-  if (!email) {
-    // Fallback if Session.getActiveUser().getEmail() is empty (depends on executeAs / sharing permissions)
-    email = UserProperties.getProperty('USER_EMAIL') || '';
+  if (!email && payload && payload.email) {
+    email = payload.email;
   }
+  if (!email) email = '';
   
   var ss = getDbSpreadsheet();
   var sheet = ss.getSheetByName('Users');
@@ -150,14 +153,16 @@ function getInitData() {
 
 /**
  * Registers a new user into the database
+ * profile.email: 프론트엔드 폼에서 직접 입력한 이메일 (세션 이메일이 없을 때 사용)
  */
 function registerUser(profile) {
   var lock = LockService.getUserLock();
   try {
     if (lock.tryLock(5000)) {
-      var email = Session.getActiveUser().getEmail() || profile.email;
+      // USER_DEPLOYING 환경에서는 세션 이메일이 비어있으므로 payload의 이메일을 우선 사용
+      var email = profile.email || Session.getActiveUser().getEmail();
       if (!email) {
-        throw new Error('이메일을 확인할 수 없습니다. 구글 계정에 로그인 상태인지 확인해주세요.');
+        throw new Error('이메일을 확인할 수 없습니다. 이메일을 입력해주세요.');
       }
       
       var ss = getDbSpreadsheet();
