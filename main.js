@@ -1,6 +1,7 @@
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyvSZMd27oDkIP7mHRNVZPxML6ydmep3AhT2AIFRJuLAjUt-l2ReiH3mNSIawmhlJwM/exec";
 
-// google.script.run Mock for Fetch API
+// google.script.run → fetch GET 방식 (Apps Script 302 redirect 대응)
+// POST는 리다이렉트 시 body가 소실되므로 GET + URLSearchParams 방식 사용
 const google = {
   script: {
     get run() {
@@ -16,25 +17,30 @@ const google = {
           return this;
         },
         dispatch: function(action, payload) {
-          if (APPS_SCRIPT_URL === "YOUR_WEB_APP_URL_HERE") {
-            const msg = "main.js 상단의 APPS_SCRIPT_URL에 배포된 웹 앱 URL을 입력해주세요.";
-            alert(msg);
-            if (this._failureFn) this._failureFn(new Error(msg));
-            return;
+          const self = this;
+          const params = new URLSearchParams({ action: action });
+          if (payload !== null && payload !== undefined) {
+            params.append('payload', JSON.stringify(payload));
           }
-          
-          fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: action, payload: payload }),
-            headers: { 'Content-Type': 'text/plain' } // CORS preflight 회피
-          })
-          .then(res => res.json())
-          .then(data => {
-            if (this._successFn) this._successFn(data);
-          })
-          .catch(err => {
-            if (this._failureFn) this._failureFn(err);
-          });
+          const url = APPS_SCRIPT_URL + '?' + params.toString();
+
+          fetch(url, { method: 'GET', redirect: 'follow' })
+            .then(function(res) {
+              if (!res.ok) throw new Error('HTTP ' + res.status);
+              return res.text();
+            })
+            .then(function(text) {
+              // Apps Script가 가끔 HTML 오류 페이지를 반환할 경우 처리
+              try {
+                const data = JSON.parse(text);
+                if (self._successFn) self._successFn(data);
+              } catch(e) {
+                if (self._failureFn) self._failureFn(new Error('JSON 파싱 실패: ' + text.substring(0, 200)));
+              }
+            })
+            .catch(function(err) {
+              if (self._failureFn) self._failureFn(err);
+            });
         }
       };
     }
