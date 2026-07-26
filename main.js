@@ -1,4 +1,4 @@
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxpymULI4fHyk5IXfG9PsolsA8SC2fEOZjOFsrq7fEhglWcPcRcGIjNjGkpkzirYXnw/exec";
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZsBHhdEtH1UTTtsn9aLzL7ZEsRLou_P7_Daje1x6kJ8Ny2VzH-hTmKSv9TJ2q4MtR/exec";
 
 // google.script.run → fetch GET 방식 (Apps Script 302 redirect 대응)
 // POST는 리다이렉트 시 body가 소실되므로 GET + URLSearchParams 방식 사용
