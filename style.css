@@ -263,8 +263,15 @@ body {
   cursor: pointer;
 }
 
+.screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 /* --- Registration Pane --- */
 #registration-screen {
+  display: flex;
   justify-content: center;
   align-items: center;
   padding: 24px;

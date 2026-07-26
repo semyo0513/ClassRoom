@@ -1,0 +1,14 @@
+{
+  "name": "classroom-dashboard",
+  "version": "1.0.0",
+  "description": "Classroom Dashboard Web App",
+  "main": "Code.gs",
+  "scripts": {
+    "login": "clasp login",
+    "push": "clasp push",
+    "watch": "clasp push --watch"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}

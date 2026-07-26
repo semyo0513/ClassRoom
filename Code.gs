@@ -61,7 +61,9 @@ function getDbSpreadsheet() {
   
   if (sheetId) {
     try {
-      return SpreadsheetApp.openById(sheetId);
+      var existingSs = SpreadsheetApp.openById(sheetId);
+      ensureHeaders(existingSs);
+      return existingSs;
     } catch (e) {
       Logger.log('Previously stored sheet not found, recreating...');
     }
@@ -69,19 +71,35 @@ function getDbSpreadsheet() {
   
   // Find or create sheet
   var files = DriveApp.getFilesByName('Classroom Dashboard DB');
+  var ss;
   if (files.hasNext()) {
     var file = files.next();
     properties.setProperty('DB_SHEET_ID', file.getId());
-    return SpreadsheetApp.openById(file.getId());
+    ss = SpreadsheetApp.openById(file.getId());
+  } else {
+    // Create brand new sheet
+    ss = SpreadsheetApp.create('Classroom Dashboard DB');
+    properties.setProperty('DB_SHEET_ID', ss.getId());
   }
   
-  // Create brand new sheet
-  var ss = SpreadsheetApp.create('Classroom Dashboard DB');
-  var usersSheet = ss.getActiveSheet().setName('Users');
-  usersSheet.appendRow(['Email', 'Name', 'Role', 'Department', 'CreatedAt']);
-  
-  properties.setProperty('DB_SHEET_ID', ss.getId());
+  ensureHeaders(ss);
   return ss;
+}
+
+function ensureHeaders(ss) {
+  var usersSheet = ss.getSheetByName('Users');
+  if (!usersSheet) {
+    var sheets = ss.getSheets();
+    if (sheets[0].getName() === 'Sheet1' || sheets[0].getName() === '시트1') {
+      usersSheet = sheets[0].setName('Users');
+    } else {
+      usersSheet = ss.insertSheet('Users');
+    }
+  }
+  
+  if (usersSheet.getLastRow() === 0) {
+    usersSheet.appendRow(['Email', 'Name', 'Role', 'Department', 'CreatedAt']);
+  }
 }
 
 // --- Dispatch Implementation Functions ---
