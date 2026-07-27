@@ -1,277 +1,1080 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>클래스룸 통합 대시보드</title>
-    <!-- Google Fonts & Icon Set -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-  </head>
-  <body>
-    <!-- Global Loader -->
-    <div id="loader" class="loader-overlay">
-      <div class="loader-content">
-        <div class="spinner"></div>
-        <p id="loader-text">대시보드 데이터를 로딩 중입니다...</p>
-      </div>
-    </div>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>창순기획 클래스룸 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+/* ==========================================================================
+   토큰 — 학교 성적원부/장부 느낌의 잉크·종이·직인(도장) 컨셉
+   ========================================================================== */
+:root{
+  --ink:#16233F; --ink-2:#223257;
+  --paper:#EEF2F6; --card:#FFFFFF;
+  --seal:#B8433A; --brass:#C9A227; --success:#2E9E68; --info:#3E6FA8;
+  --text:#1B222C; --slate:#5B6675; --border:#DCE3EA;
+  --grid-line: rgba(22,35,63,0.05);
+  --radius:14px; --radius-sm:9px;
+  --shadow:0 8px 24px rgba(22,35,63,0.08);
+  --font-display:'Noto Serif KR',serif;
+  --font-body:'Noto Sans KR',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+[data-theme="dark"]{
+  --paper:#0F1524; --card:#182238;
+  --text:#EDEFF3; --slate:#98A3B5; --border:#2B3552;
+  --grid-line: rgba(255,255,255,0.045);
+  --shadow:0 8px 24px rgba(0,0,0,0.35);
+}
 
-    <!-- Registration Screen (Hidden by default) -->
-    <div id="registration-screen" class="screen hidden">
-      <div class="glass-card auth-card animate-fade-in">
-        <div class="brand">
-          <i class="fa-solid fa-graduation-cap brand-icon"></i>
-          <h1>Classroom Hub</h1>
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:var(--font-body); color:var(--text); background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size:42px 42px; background-attachment:fixed;
+  min-height:100vh;
+}
+:focus-visible{ outline:2px solid var(--brass); outline-offset:2px; }
+@media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } }
+
+/* ==========================================================================
+   레이아웃
+   ========================================================================== */
+.app{ display:grid; grid-template-columns:236px 1fr; min-height:100vh; }
+
+.sidebar{
+  background:var(--ink); color:#EAEDF4; display:flex; flex-direction:column;
+  padding:22px 14px; gap:18px; position:sticky; top:0; height:100vh;
+}
+.brand-eyebrow{ font-size:11px; letter-spacing:4px; color:#9FB0CE; font-weight:600; }
+.brand-title{ font-family:var(--font-display); font-weight:700; font-size:21px; line-height:1.3; margin-top:4px; }
+.nav{ display:flex; flex-direction:column; gap:4px; margin-top:6px; }
+.nav-item{
+  display:flex; align-items:center; gap:10px; text-align:left; width:100%;
+  background:transparent; border:none; color:#C6D0E4; padding:11px 12px; border-radius:10px;
+  font-size:14px; font-family:var(--font-body); cursor:pointer; position:relative;
+  transition:background .18s ease, color .18s ease, transform .18s ease;
+}
+.nav-item:hover{ background:rgba(255,255,255,.06); color:#fff; }
+.nav-item.active{ background:#fff; color:var(--ink); font-weight:700; transform:translateX(2px); }
+.nav-item.active::before{
+  content:""; position:absolute; left:-14px; top:50%; transform:translateY(-50%);
+  width:0; height:0; border-top:7px solid transparent; border-bottom:7px solid transparent;
+  border-left:7px solid #fff;
+}
+.sidebar-footer{ margin-top:auto; font-size:11px; color:#7C8BAC; }
+
+.main{ display:flex; flex-direction:column; min-width:0; }
+.topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 26px; background:var(--card); border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:20;
+}
+.topbar-left{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.field-label{ font-size:12px; color:var(--slate); }
+select, input[type="date"], input[type="time"], input[type="text"]{
+  font-family:var(--font-body); font-size:13px; color:var(--text);
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:8px 10px;
+}
+#courseSelect{ min-width:220px; font-weight:600; }
+.icon-btn{
+  border:1px solid var(--border); background:var(--card); border-radius:var(--radius-sm);
+  width:34px; height:34px; cursor:pointer; font-size:15px; color:var(--slate);
+  transition:transform .2s ease;
+}
+.icon-btn:hover{ transform:rotate(90deg); color:var(--ink); }
+.ghost-btn, .primary-btn, .mini-btn{
+  font-family:var(--font-body); font-size:13px; font-weight:600; border-radius:var(--radius-sm);
+  padding:9px 16px; cursor:pointer; border:1px solid var(--border); background:var(--card); color:var(--text);
+  transition:transform .12s ease, box-shadow .12s ease; text-decoration:none; display:inline-block;
+}
+.mini-btn{ padding:5px 10px; font-size:12px; }
+.ghost-btn:hover, .primary-btn:hover, .mini-btn:hover{ transform:translateY(-1px); box-shadow:var(--shadow); }
+.primary-btn{ background:var(--ink); color:#fff; border-color:var(--ink); }
+
+.content{ padding:26px; max-width:1180px; width:100%; margin:0 auto; }
+.panel{ display:none; }
+.panel.active{ display:block; }
+.panel-enter{ animation:panelIn .4s ease; }
+@keyframes panelIn{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:translateY(0); } }
+
+.panel-head h1{ font-family:var(--font-display); font-size:26px; margin:0 0 4px; }
+.panel-sub{ color:var(--slate); margin:0 0 20px; font-size:14px; }
+
+/* ==========================================================================
+   카드 / KPI / 표
+   ========================================================================== */
+.card{
+  background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+  padding:20px; box-shadow:var(--shadow); margin-bottom:20px;
+}
+.card h3{ margin:0 0 14px; font-size:15px; font-family:var(--font-display); }
+.card-row{ display:grid; grid-template-columns:1.3fr 1fr; gap:20px; align-items:start; }
+.card-head-row{ display:flex; align-items:center; justify-content:space-between; }
+
+.kpi-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:20px; }
+.kpi-card{
+  background:var(--card); border:1px solid var(--border); border-left:4px solid var(--ink);
+  border-radius:var(--radius); padding:16px; box-shadow:var(--shadow);
+  animation:cardPop .4s ease backwards;
+}
+.kpi-card:nth-child(1){animation-delay:.02s;} .kpi-card:nth-child(2){animation-delay:.08s;}
+.kpi-card:nth-child(3){animation-delay:.14s;} .kpi-card:nth-child(4){animation-delay:.2s;}
+.kpi-card:nth-child(5){animation-delay:.26s;}
+@keyframes cardPop{ from{ opacity:0; transform:translateY(8px) scale(.98); } to{ opacity:1; transform:none; } }
+.kpi-card.accent-success{ border-left-color:var(--success); }
+.kpi-card.accent-seal{ border-left-color:var(--seal); }
+.kpi-card.accent-brass{ border-left-color:var(--brass); }
+.kpi-label{ font-size:12px; color:var(--slate); margin-bottom:6px; }
+.kpi-value{ font-size:26px; font-weight:700; }
+.mono{ font-family:var(--font-mono); }
+
+.chart-card .chart-wrap{ position:relative; height:240px; }
+.donut-wrap{ height:200px; max-width:220px; margin:0 auto; }
+
+.tips{ margin:0; padding-left:18px; color:var(--slate); font-size:13.5px; line-height:1.8; }
+
+.data-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+.data-table th{
+  text-align:left; font-size:12px; color:var(--slate); font-weight:600; padding:8px 10px;
+  border-bottom:2px solid var(--border);
+}
+.data-table td{ padding:9px 10px; border-bottom:1px solid var(--border); }
+.data-table tbody tr:hover{ background:rgba(22,35,63,.035); }
+.table-scroll{ max-height:320px; overflow:auto; }
+.clickable{ cursor:pointer; }
+.legend{ font-size:11.5px; color:var(--slate); margin:10px 2px 0; }
+
+.badge{ padding:3px 9px; border-radius:999px; font-size:12px; font-weight:700; display:inline-block; }
+.st-none{ background:#EDEFF3; color:#8892A0; }
+[data-theme="dark"] .st-none{ background:#232E48; color:#8FA0BE; }
+.st-progress{ background:#E5EDF7; color:var(--info); }
+.st-done{ background:#E1F5EA; color:var(--success); }
+.st-late{ background:#FBEAE8; color:var(--seal); }
+.st-ontime{ background:#E1F5EA; color:var(--success); }
+
+/* ==========================================================================
+   출석 칩 / 체크리스트 / 옵션
+   ========================================================================== */
+.toolbar{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px; font-size:13px; color:var(--slate); }
+.toolbar label{ display:flex; align-items:center; gap:6px; }
+.radio-inline{ display:flex; align-items:center; gap:5px; font-size:13px; }
+
+.status-cell{ display:flex; gap:6px; flex-wrap:wrap; }
+.chip{
+  border:1px solid var(--border); background:var(--card); color:var(--text);
+  padding:6px 11px; border-radius:999px; font-size:12px; cursor:pointer;
+  transition:all .15s ease; font-family:var(--font-body);
+}
+.chip.active.chip-출석{ background:var(--success); border-color:var(--success); color:#fff; }
+.chip.active.chip-지각{ background:var(--brass); border-color:var(--brass); color:#1B222C; }
+.chip.active.chip-조퇴{ background:var(--info); border-color:var(--info); color:#fff; }
+.chip.active.chip-결석{ background:var(--seal); border-color:var(--seal); color:#fff; }
+.chip.active.chip-기타{ background:#8892A0; border-color:#8892A0; color:#fff; }
+.note-input{ width:100%; min-width:100px; }
+
+.check-list{ display:flex; flex-direction:column; gap:2px; max-height:260px; overflow:auto; padding-right:4px; }
+.check-row{ display:flex; align-items:center; gap:9px; padding:7px 6px; border-radius:8px; font-size:13.5px; cursor:pointer; }
+.check-row:hover{ background:rgba(22,35,63,.04); }
+
+.option-row{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+.option-row label{ display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--slate); }
+.hint{ font-size:12px; color:var(--slate); margin:6px 0 14px; }
+.btn-row{ display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
+
+/* ==========================================================================
+   티켓 미리보기
+   ========================================================================== */
+.ticket-card{
+  border:2px solid var(--ink); border-radius:12px; padding:20px; background:#F7F5EF; color:#2b2b2b; position:relative;
+}
+[data-theme="dark"] .ticket-card{ background:#1D2740; color:#EDEFF3; }
+.ticket-eyebrow{ text-align:center; font-size:11px; letter-spacing:3px; color:var(--ink); font-weight:700; }
+[data-theme="dark"] .ticket-eyebrow{ color:#9FB0CE; }
+.ticket-title{ text-align:center; font-family:var(--font-display); font-size:19px; margin:8px 0 16px; color:var(--ink); }
+[data-theme="dark"] .ticket-title{ color:#EDEFF3; }
+.ticket-row{ display:flex; justify-content:space-between; font-size:13.5px; padding:6px 0; border-bottom:1px dashed var(--border); }
+.ticket-seal{
+  width:66px; height:66px; border:3px solid var(--seal); color:var(--seal); border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-weight:700; margin:16px auto 8px; transform:rotate(-8deg);
+}
+.ticket-id{ text-align:center; font-size:11px; color:var(--slate); font-family:var(--font-mono); }
+
+/* ==========================================================================
+   로딩 오버레이 / 토스트 / 도장 연출 / 컨페티
+   ========================================================================== */
+.loading-overlay{
+  position:fixed; inset:0; z-index:10000; background:var(--ink); color:#fff;
+  display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px;
+  transition:opacity .5s ease, visibility .5s ease; opacity:1; visibility:visible;
+}
+.loading-overlay:not(.show){ opacity:0; visibility:hidden; pointer-events:none; }
+.loading-mark{ font-family:var(--font-display); font-size:22px; letter-spacing:3px; }
+.loading-spinner{
+  width:34px; height:34px; border:3px solid rgba(255,255,255,.22); border-top-color:var(--brass);
+  border-radius:50%; animation:spin .85s linear infinite;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+.toast-box{ position:fixed; right:20px; bottom:20px; display:flex; flex-direction:column; gap:8px; z-index:9997; }
+.toast{
+  background:var(--ink); color:#fff; padding:12px 16px; border-radius:10px; font-size:13.5px;
+  box-shadow:var(--shadow); opacity:0; transform:translateY(8px); transition:all .25s ease; max-width:320px;
+}
+.toast.show{ opacity:1; transform:translateY(0); }
+.toast-success{ background:var(--success); }
+.toast-warn{ background:var(--brass); color:#1B222C; }
+.toast-error{ background:var(--seal); }
+
+.stamp-layer{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  pointer-events:none; z-index:9999; background:rgba(22,35,63,0); transition:background .3s ease;
+}
+.stamp-layer.show{ background:rgba(22,35,63,.15); }
+.stamp{
+  width:150px; height:150px; border-radius:50%; border:6px solid var(--seal); color:var(--seal);
+  display:flex; align-items:center; justify-content:center; font-family:var(--font-display);
+  font-weight:900; font-size:21px; transform:scale(2.4) rotate(-25deg); opacity:0; letter-spacing:1px;
+}
+.stamp-layer.show .stamp{ animation:stampDown .55s cubic-bezier(.2,1.4,.4,1) forwards; }
+@keyframes stampDown{
+  0%{ transform:scale(2.4) rotate(-25deg); opacity:0; }
+  60%{ transform:scale(.92) rotate(-8deg); opacity:1; }
+  80%{ transform:scale(1.06) rotate(-8deg); }
+  100%{ transform:scale(1) rotate(-8deg); opacity:1; }
+}
+.confetti-canvas{ position:fixed; inset:0; pointer-events:none; z-index:9998; }
+
+/* ==========================================================================
+   반응형
+   ========================================================================== */
+@media (max-width:880px){
+  .app{ grid-template-columns:1fr; }
+  .sidebar{ position:static; height:auto; flex-direction:row; overflow-x:auto; align-items:center; }
+  .brand-title{ display:none; }
+  .brand-eyebrow{ white-space:nowrap; }
+  .nav{ flex-direction:row; }
+  .nav-item span{ display:none; }
+  .sidebar-footer{ display:none; }
+  .kpi-grid{ grid-template-columns:repeat(2,1fr); }
+  .card-row{ grid-template-columns:1fr; }
+  .content{ padding:16px; }
+}
+</style>
+</head>
+<body>
+
+<div id="loadingOverlay" class="loading-overlay show">
+  <div class="loading-mark">창순기획 · 클래스룸 대시보드</div>
+  <div class="loading-spinner"></div>
+</div>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-eyebrow">창순기획</div>
+      <div class="brand-title">클래스룸<br>대시보드</div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-tab="dashboard">🏠 <span>대시보드</span></button>
+      <button class="nav-item" data-tab="attendance">📋 <span>출석부</span></button>
+      <button class="nav-item" data-tab="submissions">📝 <span>제출 현황</span></button>
+      <button class="nav-item" data-tab="grades">📊 <span>성적 비교</span></button>
+      <button class="nav-item" data-tab="copy">🗂️ <span>과제 복사</span></button>
+      <button class="nav-item" data-tab="tickets">✉️ <span>알림 발송</span></button>
+      <button class="nav-item" data-tab="logs">🕰️ <span>활동 로그</span></button>
+      <button class="nav-item" data-tab="settings">⚙️ <span>설정</span></button>
+    </nav>
+    <div class="sidebar-footer">v1.0 · 창순기획 제작</div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="field-label">코스</span>
+        <select id="courseSelect"></select>
+        <button id="refreshBtn" class="icon-btn" title="새로고침">↻</button>
+      </div>
+      <div class="topbar-right">
+        <button id="themeToggle" class="ghost-btn">🌙 다크모드</button>
+      </div>
+    </header>
+
+    <main class="content">
+
+      <!-- 대시보드 -->
+      <section id="panel-dashboard" class="panel active">
+        <div class="panel-head">
+          <h1>대시보드</h1>
+          <p class="panel-sub">선택한 코스의 한눈에 보는 현황입니다.</p>
         </div>
-        <h2>신규 사용자 등록</h2>
-        <p class="subtitle">대시보드를 이용하기 위해 프로필을 입력해주세요.</p>
-        
-        <form id="register-form" onsubmit="handleRegistration(event)">
-          <div class="form-group">
-            <label for="reg-email">구글 계정 이메일</label>
-            <input type="email" id="reg-email" required placeholder="본인의 구글 계정 이메일을 입력하세요">
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-label">전체 학생</div><div class="kpi-value mono" id="kpiStudents">-</div></div>
+          <div class="kpi-card"><div class="kpi-label">등록 과제</div><div class="kpi-value mono" id="kpiAssignments">-</div></div>
+          <div class="kpi-card accent-success"><div class="kpi-label">제출률</div><div class="kpi-value mono" id="kpiRate">-</div></div>
+          <div class="kpi-card accent-seal"><div class="kpi-label">지각 제출</div><div class="kpi-value mono" id="kpiLate">-</div></div>
+          <div class="kpi-card accent-brass"><div class="kpi-label">평균 점수</div><div class="kpi-value mono" id="kpiGrade">-</div></div>
+        </div>
+        <div class="card-row">
+          <div class="card chart-card">
+            <h3>전체 제출률</h3>
+            <div class="chart-wrap donut-wrap"><canvas id="rateChart"></canvas></div>
           </div>
-          <div class="form-group">
-            <label for="reg-name">이름</label>
-            <input type="text" id="reg-name" required placeholder="성함을 입력하세요">
+          <div class="card">
+            <h3>사용 안내</h3>
+            <ul class="tips">
+              <li>좌측 메뉴에서 원하는 기능으로 이동하세요.</li>
+              <li>상단에서 코스를 바꾸면 모든 화면이 해당 코스 기준으로 갱신됩니다.</li>
+              <li>제출률 100%를 달성하면 작은 축하 효과가 나타납니다 🎉</li>
+            </ul>
           </div>
-          <div class="form-row">
-            <div class="form-group col">
-              <label for="reg-role">역할</label>
-              <select id="reg-role" required>
-                <option value="Teacher" selected>교사 (관리자)</option>
-                <option value="Student">학생 (참여자)</option>
+        </div>
+      </section>
+
+      <!-- 출석부 -->
+      <section id="panel-attendance" class="panel">
+        <div class="panel-head">
+          <h1>출석부</h1>
+          <p class="panel-sub">날짜를 선택하고 학생별 출결 상태를 기록하세요.</p>
+        </div>
+        <div class="toolbar">
+          <label>날짜 <input type="date" id="attendanceDate"></label>
+          <button id="loadAttendanceBtn" class="ghost-btn">불러오기</button>
+          <button id="saveAttendanceBtn" class="primary-btn">저장</button>
+        </div>
+        <div class="card">
+          <table class="data-table">
+            <thead><tr><th>이름</th><th>출결 상태</th><th>비고</th></tr></thead>
+            <tbody id="attendanceBody"></tbody>
+          </table>
+        </div>
+        <div class="card chart-card">
+          <h3>최근 30일 출결 추이</h3>
+          <div class="chart-wrap"><canvas id="attendanceChart"></canvas></div>
+        </div>
+      </section>
+
+      <!-- 제출 현황 -->
+      <section id="panel-submissions" class="panel">
+        <div class="panel-head">
+          <h1>과제 제출 현황</h1>
+          <p class="panel-sub">과제를 선택하면 학생별 제출 시간, 지각 여부, 최근 이력을 확인할 수 있습니다.</p>
+        </div>
+        <div class="toolbar">
+          <label>과제 <select id="cwSelectSubmission"></select></label>
+        </div>
+        <div class="card">
+          <table class="data-table">
+            <thead><tr><th>이름</th><th>상태</th><th>제출 시각</th><th>지각 여부</th><th>성적</th><th>최근 이력</th><th></th></tr></thead>
+            <tbody id="submissionBody"></tbody>
+          </table>
+          <p class="legend">최근 이력: 🟢 정상제출 · 🟡 지각제출 · 🔴 미제출 (직전 최대 5건, 현재 과제 제외)</p>
+        </div>
+      </section>
+
+      <!-- 성적 비교 -->
+      <section id="panel-grades" class="panel">
+        <div class="panel-head">
+          <h1>성적 비교</h1>
+          <p class="panel-sub">과제별 평균과 학생별 달성률 추이를 시각화합니다.</p>
+        </div>
+        <div class="card-row">
+          <div class="card chart-card">
+            <h3>과제별 평균 점수</h3>
+            <div class="chart-wrap"><canvas id="assignmentChart"></canvas></div>
+          </div>
+          <div class="card">
+            <h3>학생별 평균 (클릭하여 추이 보기)</h3>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th>이름</th><th>평균</th></tr></thead>
+                <tbody id="gradeStudentBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <h3 id="studentTrendTitle">학생 달성률 추이</h3>
+          <div class="chart-wrap"><canvas id="studentTrendChart"></canvas></div>
+        </div>
+      </section>
+
+      <!-- 과제 복사 -->
+      <section id="panel-copy" class="panel">
+        <div class="panel-head">
+          <h1>과제 일괄/선택 복사</h1>
+          <p class="panel-sub">현재 코스의 과제를 다른 코스로 복사하여 그대로 부여합니다.</p>
+        </div>
+        <div class="card-row">
+          <div class="card">
+            <h3>복사할 과제</h3>
+            <div class="check-list" id="copyWorkList"></div>
+          </div>
+          <div class="card">
+            <h3>대상 코스</h3>
+            <div class="check-list" id="copyTargetList"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>옵션</h3>
+          <div class="option-row">
+            <label>마감일 <input type="date" id="copyDueDate"></label>
+            <label>마감 시간 <input type="time" id="copyDueTime" value="23:59"></label>
+            <label>게시 상태
+              <select id="copyState">
+                <option value="PUBLISHED">바로 게시</option>
+                <option value="DRAFT" selected>임시저장(초안)</option>
               </select>
-            </div>
-            <div class="form-group col">
-              <label for="reg-dept">소속/부서</label>
-              <input type="text" id="reg-dept" required placeholder="예: 디자인과, 1학년 2반">
-            </div>
+            </label>
           </div>
-          <button type="submit" class="btn btn-primary btn-block">
-            <i class="fa-solid fa-user-plus icon-left"></i>등록 및 시작하기
-          </button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Dashboard Screen (Hidden by default) -->
-    <div id="dashboard-screen" class="screen hidden">
-      <!-- Top Navigation Bar -->
-      <header class="glass-header">
-        <div class="header-left">
-          <i class="fa-solid fa-graduation-cap logo-icon"></i>
-          <span class="logo-text">Classroom Dashboard</span>
+          <p class="hint">마감일을 비워두면 마감일 없이 생성됩니다. 대상 코스 수 × 선택한 과제 수만큼 새 과제가 생성됩니다.</p>
+          <button id="copyRunBtn" class="primary-btn">복사 실행</button>
         </div>
-        <div class="header-right">
-          <!-- Database Sheet Link -->
-          <a id="db-link" href="#" target="_blank" class="db-sheet-btn" title="스프레드시트 DB 열기">
-            <i class="fa-solid fa-file-excel"></i>
-            <span>Sheet DB</span>
-          </a>
-          <!-- User Profile -->
-          <div class="user-profile">
-            <div class="user-avatar" id="user-avatar-char">C</div>
-            <div class="user-info">
-              <div id="user-display-name" class="user-name">User Name</div>
-              <div id="user-display-role" class="user-role">Teacher</div>
-            </div>
-          </div>
+      </section>
+
+      <!-- 알림 발송 (티켓) -->
+      <section id="panel-tickets" class="panel">
+        <div class="panel-head">
+          <h1>알림 발송 (티켓)</h1>
+          <p class="panel-sub">제출 완료 인증 또는 성적 발급 확인 이메일을 학생에게 발송합니다.</p>
         </div>
-      </header>
-
-      <!-- Main Layout -->
-      <div class="main-container">
-        <!-- Sidebar Controls -->
-        <aside class="sidebar glass-card">
-          <div class="sidebar-section">
-            <label class="sidebar-label">클래스룸 수업 선택</label>
-            <div class="custom-select-wrapper">
-              <select id="course-selector" onchange="handleCourseChange()">
-                <option value="" disabled selected>수업을 로드하는 중...</option>
-              </select>
-            </div>
-          </div>
-
-          <nav class="sidebar-nav">
-            <button id="tab-btn-submission" class="nav-item active" onclick="switchTab('submission')">
-              <i class="fa-solid fa-chart-column"></i>
-              <span>과제 제출 현황</span>
-            </button>
-            <button id="tab-btn-feedback" class="nav-item" onclick="switchTab('feedback')">
-              <i class="fa-solid fa-table-cells"></i>
-              <span>피드백 매트릭스</span>
-            </button>
-          </nav>
-        </aside>
-
-        <!-- Content Area -->
-        <main class="content-area">
-          <!-- Empty State (Shown when no course is selected) -->
-          <div id="empty-state" class="glass-card empty-container animate-fade-in">
-            <i class="fa-solid fa-arrow-left empty-icon animate-bounce"></i>
-            <h3>분석할 클래스룸 수업을 선택해주세요</h3>
-            <p>좌측 사이드바에서 활성화된 수업을 선택하면 실시간 제출 현황 및 피드백 데이터를 조회할 수 있습니다.</p>
-          </div>
-
-          <!-- Tab Content 1: Submission Status -->
-          <div id="tab-content-submission" class="tab-pane hidden">
-            <!-- Coursework Selector Header -->
-            <div class="glass-card selector-card">
-              <div class="card-header">
-                <h2><i class="fa-solid fa-clipboard-list header-icon"></i>과제 목록</h2>
-              </div>
-              <div class="coursework-grid" id="coursework-list">
-                <!-- Coursework cards populated by JS -->
-              </div>
-            </div>
-
-            <!-- Submission Stats & List (Hidden until a coursework is selected) -->
-            <div id="submission-details-container" class="hidden">
-              <div class="stats-row">
-                <!-- Summary Chart Card -->
-                <div class="glass-card stat-card flex-2">
-                  <h3>제출 통계 요약</h3>
-                  <div class="chart-container">
-                    <div class="pie-chart-wrapper">
-                      <svg viewBox="0 0 100 100" class="donut-chart" id="donut-chart">
-                        <circle cx="50" cy="50" r="40" class="donut-track"></circle>
-                        <circle cx="50" cy="50" r="40" class="donut-segment" id="donut-segment-submitted"></circle>
-                        <circle cx="50" cy="50" r="40" class="donut-segment" id="donut-segment-missing"></circle>
-                        <g class="donut-text">
-                          <text x="50" y="47" class="donut-number" id="donut-percent">0%</text>
-                          <text x="50" y="62" class="donut-label">제출 완료</text>
-                        </g>
-                      </svg>
-                    </div>
-                    <div class="chart-legend">
-                      <div class="legend-item">
-                        <span class="legend-color color-submitted"></span>
-                        <span class="legend-label">제출/채점 완료 (<span id="count-submitted">0</span>)</span>
-                      </div>
-                      <div class="legend-item">
-                        <span class="legend-color color-missing"></span>
-                        <span class="legend-label">미제출 (<span id="count-missing">0</span>)</span>
-                      </div>
-                      <div class="legend-item total-legend">
-                        <span>전체 학생 수: <span id="count-total">0</span>명</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Active Actions Card -->
-                <div class="glass-card stat-card flex-1 flex-col justify-between">
-                  <div>
-                    <h3>관리 도구</h3>
-                    <p class="card-desc">미제출자를 추출하고 독촉 이메일을 전송할 수 있습니다.</p>
-                  </div>
-                  <div class="action-buttons-wrap">
-                    <button class="btn btn-warning btn-block" onclick="openMailModal()">
-                      <i class="fa-solid fa-paper-plane icon-left"></i>미제출자 독촉 메일 전송
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Student Submission Table -->
-              <div class="glass-card table-card animate-slide-up">
-                <div class="card-header table-header-flex">
-                  <h3 id="selected-work-title">과제 세부 정보</h3>
-                  <div class="table-filters">
-                    <button class="table-filter-btn active" id="filter-all" onclick="filterSubmissions('all')">전체</button>
-                    <button class="table-filter-btn" id="filter-submitted" onclick="filterSubmissions('submitted')">제출/채점완료</button>
-                    <button class="table-filter-btn" id="filter-missing" onclick="filterSubmissions('missing')">미제출</button>
-                  </div>
-                </div>
-                <div class="table-responsive">
-                  <table class="custom-table" id="submissions-table">
-                    <thead>
-                      <tr>
-                        <th>이름</th>
-                        <th>이메일</th>
-                        <th>제출 상태</th>
-                        <th>획득 점수</th>
-                        <th>지각 여부</th>
-                        <th>최종 업데이트</th>
-                      </tr>
-                    </thead>
-                    <tbody id="submissions-list-body">
-                      <!-- Table rows populated by JS -->
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab Content 2: Feedback Matrix -->
-          <div id="tab-content-feedback" class="tab-pane hidden">
-            <div class="glass-card table-card animate-slide-up">
-              <div class="card-header table-header-flex">
-                <div>
-                  <h2><i class="fa-solid fa-table-cells header-icon"></i>피드백 & 성적 매트릭스</h2>
-                  <p class="subtitle mt-1">학생별 과제 성적 및 제출 상태를 격자형식으로 종합 진단합니다.</p>
-                </div>
-                <button class="btn btn-secondary" onclick="loadFeedbackMatrix()">
-                  <i class="fa-solid fa-rotate"></i> 새로고침
-                </button>
-              </div>
-              <div class="matrix-responsive">
-                <table class="custom-table matrix-table" id="matrix-table">
-                  <thead>
-                    <!-- Headers populated by JS -->
-                  </thead>
-                  <tbody>
-                    <!-- Matrix rows populated by JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
-    </div>
-
-    <!-- Mail Send Modal (Hidden by default) -->
-    <div id="mail-modal" class="modal-overlay hidden">
-      <div class="glass-card modal-card animate-scale-in">
-        <div class="modal-header">
-          <h3><i class="fa-solid fa-envelope-open-text header-icon text-warning"></i> 미제출 독촉 이메일 발송</h3>
-          <button class="modal-close-btn" onclick="closeMailModal()">&times;</button>
+        <div class="toolbar">
+          <label>과제 <select id="cwSelectTicket"></select></label>
+          <label class="radio-inline"><input type="radio" name="ticketType" value="SUBMIT" checked> 제출완료 인증</label>
+          <label class="radio-inline"><input type="radio" name="ticketType" value="GRADE"> 성적 발급</label>
         </div>
-        <div class="modal-body">
-          <p class="modal-desc">
-            현재 과제를 아직 제출하지 않은 <strong><span id="mail-recipient-count">0</span>명</strong>의 학생에게 알림 이메일을 전송합니다.
-          </p>
-          <div class="recipient-pills" id="mail-recipient-pills">
-            <!-- Emails will be rendered here -->
+        <div class="card-row">
+          <div class="card">
+            <div class="card-head-row">
+              <h3>수신 학생</h3>
+              <button id="ticketAllBtn" class="mini-btn">전체 선택/해제</button>
+            </div>
+            <div class="check-list" id="ticketStudentList"></div>
+            <div class="btn-row">
+              <button id="ticketSendBtn" class="primary-btn">티켓 발송</button>
+              <button id="reminderBtn" class="ghost-btn">미제출자에게 알림 발송</button>
+            </div>
           </div>
-          <div class="form-group mt-3">
-            <label for="mail-body-template">메일 본문 내용</label>
-            <textarea id="mail-body-template" rows="8">안녕하세요.
-클래스룸에 등록된 아래 과제가 아직 제출되지 않았습니다. 기한 내에 과제를 완료해주시기 바랍니다.
-
-- 과제명: {coursework_title}
-- 기한: 미제출 또는 미채점 상태입니다.
-
-질문 사항이 있는 경우 이메일 또는 클래스룸 댓글로 남겨주세요.
-감사합니다.</textarea>
+          <div class="card">
+            <h3>티켓 미리보기</h3>
+            <div id="ticketPreview"></div>
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="closeMailModal()">취소</button>
-          <button class="btn btn-warning" onclick="sendNotifications()">
-            <i class="fa-solid fa-paper-plane icon-left"></i>이메일 일괄 전송
-          </button>
+        <div class="card">
+          <h3>최근 발송 이력</h3>
+          <table class="data-table">
+            <thead><tr><th>발급시각</th><th>유형</th><th>과제</th><th>학생</th><th>상태</th></tr></thead>
+            <tbody id="ticketLogBody"></tbody>
+          </table>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- Toast Notification Container -->
-    <div id="toast-container" class="toast-container"></div>
+      <!-- 활동 로그 -->
+      <section id="panel-logs" class="panel">
+        <div class="panel-head">
+          <h1>활동 로그</h1>
+          <p class="panel-sub">대시보드에서 수행한 주요 작업 이력입니다.</p>
+        </div>
+        <div class="card">
+          <table class="data-table">
+            <thead><tr><th>시각</th><th>사용자</th><th>동작</th><th>상세</th></tr></thead>
+            <tbody id="logBody"></tbody>
+          </table>
+        </div>
+      </section>
 
-    <script src="main.js"></script>
-  </body>
+      <!-- 설정 -->
+      <section id="panel-settings" class="panel">
+        <div class="panel-head"><h1>설정</h1></div>
+        <div class="card-row">
+          <div class="card">
+            <h3>데이터 저장소</h3>
+            <p class="hint">출석부, 티켓 발송 이력, 활동 로그는 전용 스프레드시트에 저장됩니다.</p>
+            <a id="dbLink" href="#" target="_blank" class="ghost-btn">스프레드시트 열기 ↗</a>
+          </div>
+          <div class="card">
+            <h3>캐시</h3>
+            <p class="hint">목록이 최신이 아니면 캐시를 새로고침하세요. (자동 만료: 5분)</p>
+            <button id="refreshCacheBtn" class="ghost-btn">캐시 새로고침</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>티켓 진위 확인</h3>
+          <div class="option-row">
+            <input type="text" id="verifyTicketInput" placeholder="티켓 번호 입력">
+            <button id="verifyTicketBtn" class="ghost-btn">확인</button>
+          </div>
+          <p id="verifyResult" class="hint"></p>
+        </div>
+        <div class="card">
+          <h3>정보</h3>
+          <p class="hint">창순기획 클래스룸 대시보드 · Google Classroom API 연동 · Google Apps Script 기반</p>
+        </div>
+        <div class="card" id="adminCard" style="display:none;">
+          <div class="card-head-row">
+            <h3>관리자 · 전체 사용자 현황</h3>
+            <button id="adminLoadBtn" class="mini-btn">불러오기</button>
+          </div>
+          <p class="hint">이 섹션은 관리자 계정으로 접속했을 때만 보입니다. 다른 학교 선생님들이 이 도구를 언제부터, 몇 번 사용했는지 확인할 수 있습니다.</p>
+          <a id="registryLink" href="#" target="_blank" class="ghost-btn">사용자 등록부 시트 열기 ↗</a>
+          <table class="data-table" style="margin-top:14px;">
+            <thead><tr><th>이메일</th><th>최초 접속</th><th>최근 접속</th><th>접속 횟수</th><th>개인 DB</th></tr></thead>
+            <tbody id="registryBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<div id="toastBox" class="toast-box"></div>
+
+<script>
+/* ============================================================================
+ *  상태 / 공통 유틸
+ * ========================================================================== */
+const state = { courses: [], currentCourseId: null, roster: [], courseWork: [], summary: null, matrix: null, gradeData: null, activeTab: 'dashboard', charts: {} };
+
+function $(sel, root) { return (root || document).querySelector(sel); }
+function $all(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
+function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function run(fnName) {
+  const args = Array.prototype.slice.call(arguments, 1);
+  return new Promise((resolve, reject) => {
+    const caller = google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.success === false) reject(new Error(res.error));
+        else resolve(res && typeof res === 'object' && 'data' in res ? res.data : res);
+      })
+      .withFailureHandler(err => reject(err));
+    caller[fnName].apply(caller, args);
+  });
+}
+
+function showLoading() { $('#loadingOverlay').classList.add('show'); }
+function hideLoading() { $('#loadingOverlay').classList.remove('show'); }
+
+function toast(msg, type) {
+  const box = $('#toastBox');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type ? ' toast-' + type : '');
+  el.textContent = msg;
+  box.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3600);
+}
+
+function playStamp(label) {
+  const layer = document.createElement('div');
+  layer.className = 'stamp-layer';
+  layer.innerHTML = '<div class="stamp"><span>' + esc(label || '완료') + '</span></div>';
+  document.body.appendChild(layer);
+  requestAnimationFrame(() => layer.classList.add('show'));
+  setTimeout(() => { layer.classList.remove('show'); setTimeout(() => layer.remove(), 300); }, 1200);
+}
+
+function fireConfetti() {
+  const canvas = document.createElement('canvas');
+  canvas.className = 'confetti-canvas';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  const colors = ['#B8433A', '#C9A227', '#2E9E68', '#16233F'];
+  const pieces = Array.from({ length: 120 }, () => ({
+    x: Math.random() * canvas.width, y: -20 - Math.random() * canvas.height * 0.5,
+    r: 4 + Math.random() * 5, c: colors[Math.floor(Math.random() * colors.length)],
+    vy: 2 + Math.random() * 3, vx: -1.5 + Math.random() * 3, rot: Math.random() * 360, vr: -6 + Math.random() * 12
+  }));
+  let frame = 0;
+  function tick() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.rot += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 2, p.r, p.r * 1.6); ctx.restore();
+    });
+    frame++;
+    if (frame < 140) requestAnimationFrame(tick);
+    else { canvas.remove(); window.removeEventListener('resize', resize); }
+  }
+  tick();
+}
+
+function todayLocal() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function addDays(dateStr, delta) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function destroyChart(id) { if (state.charts[id]) { state.charts[id].destroy(); delete state.charts[id]; } }
+
+/* ============================================================================
+ *  초기화 / 코스 전환 / 탭 전환
+ * ========================================================================== */
+window.addEventListener('DOMContentLoaded', init);
+
+async function init() {
+  if (typeof Chart !== 'undefined') Chart.defaults.font.family = "'Noto Sans KR', sans-serif";
+  bindNav();
+  bindTheme();
+  bindStaticHandlers();
+  $('#attendanceDate').value = todayLocal();
+
+  run('api_registerUsage').catch(() => {});
+  run('api_isAdmin').then(isAdmin => {
+    state.isAdmin = !!isAdmin;
+    $('#adminCard').style.display = state.isAdmin ? 'block' : 'none';
+  }).catch(() => {});
+
+  try {
+    const courses = await run('api_getCourses');
+    state.courses = courses;
+    $('#courseSelect').innerHTML = courses.map(c => '<option value="' + c.id + '">' + esc(c.name) + (c.section ? ' · ' + esc(c.section) : '') + '</option>').join('');
+    if (courses.length) {
+      await selectCourse(courses[0].id);
+    } else {
+      toast('개설된 코스가 없습니다. Google Classroom에서 코스를 먼저 만들어 주세요.', 'warn');
+    }
+  } catch (err) {
+    toast('코스 목록을 불러오지 못했습니다: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+const tabLoaders = {
+  dashboard: loadDashboard, attendance: loadAttendance, submissions: loadSubmissions,
+  grades: loadGrades, copy: loadCopy, tickets: loadTickets, logs: loadLogs, settings: loadSettings
+};
+
+function bindNav() {
+  $all('.nav-item').forEach(btn => btn.addEventListener('click', () => switchTab(btn.dataset.tab)));
+}
+
+async function switchTab(tab) {
+  state.activeTab = tab;
+  $all('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  $all('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + tab));
+  const panel = $('#panel-' + tab);
+  panel.classList.add('panel-enter');
+  setTimeout(() => panel.classList.remove('panel-enter'), 400);
+  if (tabLoaders[tab]) {
+    try { await tabLoaders[tab](); } catch (err) { toast(err.message, 'error'); }
+  }
+}
+
+function bindTheme() {
+  $('#themeToggle').addEventListener('click', () => {
+    const html = document.documentElement;
+    const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+    html.dataset.theme = next;
+    $('#themeToggle').textContent = next === 'dark' ? '☀️ 라이트모드' : '🌙 다크모드';
+  });
+}
+
+async function selectCourse(courseId) {
+  showLoading();
+  try {
+    state.currentCourseId = courseId;
+    $('#courseSelect').value = courseId;
+    const overview = await run('api_getCourseOverview', courseId);
+    state.roster = overview.roster;
+    state.courseWork = overview.courseWork;
+    state.summary = overview.summary;
+    state.matrix = null;
+    state.gradeData = null;
+    updateCourseWorkSelectors();
+    await tabLoaders[state.activeTab]();
+  } catch (err) {
+    toast('코스 정보를 불러오지 못했습니다: ' + err.message, 'error');
+  } finally {
+    hideLoading();
+  }
+}
+
+function updateCourseWorkSelectors() {
+  const options = state.courseWork.map(w => '<option value="' + w.id + '">' + esc(w.title) + '</option>').join('');
+  $('#cwSelectSubmission').innerHTML = options || '<option value="">과제 없음</option>';
+  $('#cwSelectTicket').innerHTML = options || '<option value="">과제 없음</option>';
+
+  $('#copyWorkList').innerHTML = state.courseWork.map(w =>
+    '<label class="check-row"><input type="checkbox" value="' + w.id + '"><span>' + esc(w.title) + '</span></label>'
+  ).join('') || '<p class="hint">복사할 과제가 없습니다.</p>';
+
+  $('#copyTargetList').innerHTML = state.courses.filter(c => c.id !== state.currentCourseId).map(c =>
+    '<label class="check-row"><input type="checkbox" value="' + c.id + '"><span>' + esc(c.name) + (c.section ? ' · ' + esc(c.section) : '') + '</span></label>'
+  ).join('') || '<p class="hint">대상으로 삼을 다른 코스가 없습니다.</p>';
+
+  $('#ticketStudentList').innerHTML = state.roster.map(s =>
+    '<label class="check-row"><input type="checkbox" value="' + s.userId + '"><span>' + esc(s.name) + '</span></label>'
+  ).join('') || '<p class="hint">등록된 학생이 없습니다.</p>';
+}
+
+function bindStaticHandlers() {
+  $('#refreshBtn').addEventListener('click', () => selectCourse(state.currentCourseId));
+  $('#courseSelect').addEventListener('change', e => selectCourse(e.target.value));
+
+  $('#loadAttendanceBtn').addEventListener('click', loadAttendance);
+  $('#attendanceDate').addEventListener('change', loadAttendance);
+  $('#saveAttendanceBtn').addEventListener('click', saveAttendance);
+
+  $('#cwSelectSubmission').addEventListener('change', loadSubmissionStatus);
+  $('#copyRunBtn').addEventListener('click', runCopy);
+
+  $('#cwSelectTicket').addEventListener('change', updateTicketPreview);
+  document.addEventListener('change', e => { if (e.target.name === 'ticketType') updateTicketPreview(); });
+  $('#ticketAllBtn').addEventListener('click', () => {
+    const boxes = $all('#ticketStudentList input');
+    const allChecked = boxes.length && boxes.every(b => b.checked);
+    boxes.forEach(b => b.checked = !allChecked);
+  });
+  $('#ticketSendBtn').addEventListener('click', sendTickets);
+  $('#reminderBtn').addEventListener('click', sendReminder);
+
+  $('#refreshCacheBtn').addEventListener('click', async () => {
+    await run('api_refreshCache', state.currentCourseId);
+    toast('캐시를 새로고침했습니다.', 'success');
+    await selectCourse(state.currentCourseId);
+  });
+  $('#adminLoadBtn').addEventListener('click', loadRegistry);
+
+  $('#verifyTicketBtn').addEventListener('click', async () => {
+    const id = $('#verifyTicketInput').value.trim();
+    if (!id) return;
+    try {
+      const res = await run('api_verifyTicket', id);
+      $('#verifyResult').textContent = res
+        ? (res.studentName + ' · ' + res.workTitle + ' · ' + res.issuedAt + ' · ' + res.status)
+        : '일치하는 티켓이 없습니다.';
+    } catch (err) { toast(err.message, 'error'); }
+  });
+}
+
+/* ============================================================================
+ *  대시보드
+ * ========================================================================== */
+async function loadDashboard() {
+  if (!state.currentCourseId) return;
+  const s = state.summary || await run('api_getDashboardSummary', state.currentCourseId);
+  state.summary = s;
+  $('#kpiStudents').textContent = s.totalStudents;
+  $('#kpiAssignments').textContent = s.totalAssignments;
+  $('#kpiRate').textContent = s.submissionRate + '%';
+  $('#kpiLate').textContent = s.lateCount;
+  $('#kpiGrade').textContent = (s.avgGrade !== null && s.avgGrade !== undefined) ? s.avgGrade : '-';
+  drawDonut(s.submissionRate);
+  if (s.allSubmitted && s.totalAssignments > 0) fireConfetti();
+}
+
+function drawDonut(rate) {
+  destroyChart('rateChart');
+  const ctx = $('#rateChart').getContext('2d');
+  state.charts.rateChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels: ['제출', '미제출'], datasets: [{ data: [rate, Math.max(0, 100 - rate)], backgroundColor: ['#2E9E68', '#DCE3EA'], borderWidth: 0 }] },
+    options: { cutout: '72%', plugins: { legend: { display: false } }, animation: { animateRotate: true, duration: 900 } }
+  });
+}
+
+/* ============================================================================
+ *  출석부
+ * ========================================================================== */
+async function loadAttendance() {
+  if (!state.currentCourseId) return;
+  const date = $('#attendanceDate').value || todayLocal();
+  $('#attendanceDate').value = date;
+  const records = await run('api_getAttendance', state.currentCourseId, date);
+  renderAttendanceTable(records);
+  const summary = await run('api_getAttendanceSummary', state.currentCourseId, addDays(date, -30), date);
+  drawAttendanceChart(summary.byDate);
+}
+
+function renderAttendanceTable(records) {
+  const body = $('#attendanceBody');
+  const statuses = ['출석', '지각', '조퇴', '결석', '기타'];
+  body.innerHTML = state.roster.map(stu => {
+    const rec = records[stu.userId] || { status: '출석', note: '' };
+    return '<tr data-uid="' + stu.userId + '">' +
+      '<td>' + esc(stu.name) + '</td>' +
+      '<td><div class="status-cell">' + statuses.map(s =>
+        '<button type="button" class="chip chip-' + s + (rec.status === s ? ' active' : '') + '" data-status="' + s + '">' + s + '</button>'
+      ).join('') + '</div></td>' +
+      '<td><input type="text" class="note-input" value="' + esc(rec.note || '') + '" placeholder="비고"></td>' +
+      '</tr>';
+  }).join('') || '<tr><td colspan="3">등록된 학생이 없습니다.</td></tr>';
+
+  body.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const row = btn.closest('tr');
+      row.querySelectorAll('.chip').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+}
+
+async function saveAttendance() {
+  const rows = $all('#attendanceBody tr[data-uid]');
+  if (!rows.length) { toast('저장할 학생 정보가 없습니다.', 'warn'); return; }
+  const records = rows.map(row => {
+    const uid = row.dataset.uid;
+    const stu = state.roster.filter(s => s.userId === uid)[0];
+    const activeChip = row.querySelector('.chip.active');
+    return { studentId: uid, name: stu ? stu.name : '', status: activeChip ? activeChip.dataset.status : '출석', note: row.querySelector('.note-input').value };
+  });
+  try {
+    await run('api_saveAttendance', state.currentCourseId, $('#attendanceDate').value, records);
+    playStamp('저장완료');
+    toast('출석부가 저장되었습니다.', 'success');
+    loadAttendance();
+  } catch (err) { toast('저장 실패: ' + err.message, 'error'); }
+}
+
+function drawAttendanceChart(byDate) {
+  destroyChart('attendanceChart');
+  const ctx = $('#attendanceChart').getContext('2d');
+  state.charts.attendanceChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: byDate.map(d => d.date.slice(5)),
+      datasets: [
+        { label: '출석', data: byDate.map(d => d['출석']), backgroundColor: '#2E9E68' },
+        { label: '지각', data: byDate.map(d => d['지각']), backgroundColor: '#C9A227' },
+        { label: '결석', data: byDate.map(d => d['결석']), backgroundColor: '#B8433A' }
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
+  });
+}
+
+/* ============================================================================
+ *  제출 현황
+ * ========================================================================== */
+const STATE_LABEL = { NEW: '미제출', CREATED: '작성중', TURNED_IN: '제출완료', RETURNED: '반환됨', RECLAIMED_BY_STUDENT: '회수함', NONE: '미제출' };
+const STATE_CLASS = { NEW: 'st-none', CREATED: 'st-progress', TURNED_IN: 'st-done', RETURNED: 'st-done', RECLAIMED_BY_STUDENT: 'st-none', NONE: 'st-none' };
+
+async function loadSubmissions() {
+  if (state.courseWork.length && !$('#cwSelectSubmission').value) $('#cwSelectSubmission').value = state.courseWork[0].id;
+  await loadSubmissionStatus();
+}
+
+async function loadSubmissionStatus() {
+  const cwId = $('#cwSelectSubmission').value;
+  if (!cwId) { $('#submissionBody').innerHTML = '<tr><td colspan="7">과제가 없습니다.</td></tr>'; return; }
+  const rows = await run('api_getSubmissionStatus', state.currentCourseId, cwId);
+  if (!state.matrix) state.matrix = await run('api_getSubmissionMatrix', state.currentCourseId);
+  renderSubmissionTable(rows, cwId);
+}
+
+function trendGlyph(studentId, currentCwId) {
+  const m = state.matrix.students.filter(s => s.userId === studentId)[0];
+  if (!m) return '-';
+  const items = m.items.filter(i => i.courseWorkId !== currentCwId).slice(-5);
+  if (!items.length) return '-';
+  return items.map(i => {
+    if (i.state === 'TURNED_IN' || i.state === 'RETURNED') return i.late ? '🟡' : '🟢';
+    return '🔴';
+  }).join(' ');
+}
+
+function renderSubmissionTable(rows, cwId) {
+  $('#submissionBody').innerHTML = rows.map(r => (
+    '<tr>' +
+      '<td>' + esc(r.name) + '</td>' +
+      '<td><span class="badge ' + (STATE_CLASS[r.state] || 'st-none') + '">' + (STATE_LABEL[r.state] || r.state) + '</span></td>' +
+      '<td>' + (r.submittedAt ? esc(r.submittedAt.replace('T', ' ').slice(0, 16)) : '-') + '</td>' +
+      '<td>' + (r.late ? '<span class="badge st-late">지각</span>' : ((r.state === 'TURNED_IN' || r.state === 'RETURNED') ? '<span class="badge st-ontime">정상</span>' : '-')) + '</td>' +
+      '<td>' + ((r.grade !== null && r.grade !== undefined) ? r.grade : '-') + '</td>' +
+      '<td class="mono">' + trendGlyph(r.userId, cwId) + '</td>' +
+      '<td><button class="mini-btn" onclick="quickTicket(\'' + r.userId + '\')">티켓</button></td>' +
+    '</tr>'
+  )).join('') || '<tr><td colspan="7">학생이 없습니다.</td></tr>';
+}
+
+async function quickTicket(userId) {
+  const cwId = $('#cwSelectSubmission').value;
+  try {
+    await run('api_sendSubmissionTicket', state.currentCourseId, cwId, userId);
+    playStamp('발송완료');
+    toast('제출 확인증을 발송했습니다.', 'success');
+  } catch (err) { toast('발송 실패: ' + err.message, 'error'); }
+}
+
+/* ============================================================================
+ *  성적 비교
+ * ========================================================================== */
+async function loadGrades() {
+  const data = await run('api_getGradeComparison', state.currentCourseId);
+  state.gradeData = data;
+  drawAssignmentAvgChart(data.perAssignment);
+  renderStudentGradeTable(data.perStudent);
+  if (data.perStudent.length) selectStudentTrend(data.perStudent[0].userId);
+}
+
+function drawAssignmentAvgChart(perAssignment) {
+  destroyChart('assignmentChart');
+  const ctx = $('#assignmentChart').getContext('2d');
+  state.charts.assignmentChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: perAssignment.map(a => a.title.length > 8 ? a.title.slice(0, 8) + '…' : a.title),
+      datasets: [{ label: '평균 점수', data: perAssignment.map(a => a.average), backgroundColor: '#C9A227' }]
+    },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => {
+          const a = perAssignment[ctx.dataIndex];
+          return '평균 ' + (a.average !== null ? a.average.toFixed(1) : '-') + ' / ' + (a.maxPoints || '-') + ' (채점 ' + a.gradedCount + '명)';
+        } } }
+      },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+function renderStudentGradeTable(list) {
+  const sorted = list.slice().sort((a, b) => (b.average || 0) - (a.average || 0));
+  $('#gradeStudentBody').innerHTML = sorted.map(s =>
+    '<tr class="clickable" onclick="selectStudentTrend(\'' + s.userId + '\')"><td>' + esc(s.name) + '</td><td class="mono">' + (s.average !== null ? s.average.toFixed(1) : '-') + '</td></tr>'
+  ).join('') || '<tr><td colspan="2">데이터가 없습니다.</td></tr>';
+}
+
+function selectStudentTrend(userId) {
+  const stu = state.gradeData.perStudent.filter(s => s.userId === userId)[0];
+  const meta = state.gradeData.perAssignment;
+  const pct = stu.series.map((v, i) => (v !== null && meta[i].maxPoints) ? Math.round(v / meta[i].maxPoints * 1000) / 10 : null);
+  drawStudentTrendChart(meta.map(m => m.title), pct, stu.name);
+}
+
+function drawStudentTrendChart(labels, pct, name) {
+  destroyChart('studentTrendChart');
+  const ctx = $('#studentTrendChart').getContext('2d');
+  $('#studentTrendTitle').textContent = name + ' 학생 달성률 추이';
+  state.charts.studentTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels.map(l => l.length > 6 ? l.slice(0, 6) + '…' : l),
+      datasets: [{ label: '달성률(%)', data: pct, borderColor: '#16233F', backgroundColor: 'rgba(22,35,63,.1)', tension: .35, fill: true, spanGaps: true }]
+    },
+    options: { scales: { y: { min: 0, max: 100 } }, plugins: { legend: { display: false } } }
+  });
+}
+
+/* ============================================================================
+ *  과제 복사
+ * ========================================================================== */
+async function loadCopy() { /* 목록은 코스 전환 시 updateCourseWorkSelectors에서 이미 구성됨 */ }
+
+async function runCopy() {
+  const workIds = $all('#copyWorkList input:checked').map(i => i.value);
+  const targetIds = $all('#copyTargetList input:checked').map(i => i.value);
+  if (!workIds.length || !targetIds.length) { toast('복사할 과제와 대상 코스를 선택하세요.', 'warn'); return; }
+  if (!confirm(workIds.length + '개 과제를 ' + targetIds.length + '개 코스에 복사할까요?')) return;
+
+  const payload = {
+    sourceCourseId: state.currentCourseId, courseWorkIds: workIds, targetCourseIds: targetIds,
+    dueDate: $('#copyDueDate').value || null, dueTime: $('#copyDueTime').value || null, state: $('#copyState').value
+  };
+  try {
+    const results = await run('api_copyCourseWork', payload);
+    const failed = results.filter(r => !r.ok).length;
+    playStamp('복사완료');
+    toast('복사 완료 (' + (results.length - failed) + '건 성공' + (failed ? ', ' + failed + '건 실패' : '') + ')', failed ? 'warn' : 'success');
+  } catch (err) { toast('복사 실패: ' + err.message, 'error'); }
+}
+
+/* ============================================================================
+ *  알림 발송 (티켓)
+ * ========================================================================== */
+async function loadTickets() { updateTicketPreview(); await loadTicketLog(); }
+
+function updateTicketPreview() {
+  const cw = state.courseWork.filter(w => w.id === $('#cwSelectTicket').value)[0];
+  const typeInput = $('input[name="ticketType"]:checked');
+  const type = typeInput ? typeInput.value : 'SUBMIT';
+  const label = type === 'GRADE' ? '성적 발급 확인증' : '과제 제출 완료 확인증';
+  $('#ticketPreview').innerHTML =
+    '<div class="ticket-card">' +
+      '<div class="ticket-eyebrow">창순기획 · CLASSROOM DASHBOARD</div>' +
+      '<div class="ticket-title">' + label + '</div>' +
+      '<div class="ticket-row"><span>항목</span><b>' + esc(cw ? cw.title : '-') + '</b></div>' +
+      '<div class="ticket-seal">확인</div>' +
+      '<div class="ticket-id">TICKET ID: ••••••••</div>' +
+    '</div>';
+}
+
+async function sendTickets() {
+  const cwId = $('#cwSelectTicket').value;
+  const typeInput = $('input[name="ticketType"]:checked');
+  const type = typeInput ? typeInput.value : 'SUBMIT';
+  const studentIds = $all('#ticketStudentList input:checked').map(i => i.value);
+  if (!cwId || !studentIds.length) { toast('과제와 학생을 선택하세요.', 'warn'); return; }
+  try {
+    const results = await run('api_bulkSendTickets', state.currentCourseId, cwId, studentIds, type);
+    const failed = results.filter(r => !r.ok);
+    playStamp('발송완료');
+    toast('티켓 발송 완료 (' + (results.length - failed.length) + '건 성공' + (failed.length ? ', ' + failed.length + '건 실패' : '') + ')', failed.length ? 'warn' : 'success');
+    loadTicketLog();
+  } catch (err) { toast('발송 실패: ' + err.message, 'error'); }
+}
+
+async function sendReminder() {
+  const cwId = $('#cwSelectTicket').value;
+  if (!cwId) { toast('과제를 선택하세요.', 'warn'); return; }
+  try {
+    const res = await run('api_sendReminder', state.currentCourseId, cwId);
+    toast('미제출 알림 발송: ' + res.sent + '명 성공, ' + res.failed + '명 실패', 'success');
+  } catch (err) { toast('발송 실패: ' + err.message, 'error'); }
+}
+
+async function loadTicketLog() {
+  const logs = await run('api_getTicketLog', state.currentCourseId, 30);
+  $('#ticketLogBody').innerHTML = logs.map(l =>
+    '<tr><td>' + esc(l.issuedAt) + '</td><td>' + (l.type === 'GRADE' ? '성적' : '제출확인') + '</td><td>' + esc(l.workTitle) + '</td><td>' + esc(l.studentName) + '</td><td>' + esc(l.status) + '</td></tr>'
+  ).join('') || '<tr><td colspan="5">발송 이력이 없습니다.</td></tr>';
+}
+
+/* ============================================================================
+ *  활동 로그 / 설정
+ * ========================================================================== */
+async function loadLogs() {
+  const logs = await run('api_getActivityLog', 100);
+  $('#logBody').innerHTML = logs.map(l =>
+    '<tr><td>' + esc(l.time) + '</td><td>' + esc(l.user) + '</td><td>' + esc(l.action) + '</td><td>' + esc(l.detail) + '</td></tr>'
+  ).join('') || '<tr><td colspan="4">기록이 없습니다.</td></tr>';
+}
+
+async function loadSettings() {
+  try {
+    const url = await run('api_getDbLink');
+    $('#dbLink').href = url;
+  } catch (err) { /* 무시 */ }
+  if (state.isAdmin) loadRegistry();
+}
+
+async function loadRegistry() {
+  try {
+    const data = await run('api_getRegistryList');
+    $('#registryLink').href = data.registryUrl;
+    $('#registryBody').innerHTML = data.users.map(u =>
+      '<tr><td>' + esc(u.email) + '</td><td>' + esc(u.firstSeen) + '</td><td>' + esc(u.lastSeen) + '</td><td class="mono">' + esc(u.visits) + '</td><td><a href="' + esc(u.dbUrl) + '" target="_blank">열기 ↗</a></td></tr>'
+    ).join('') || '<tr><td colspan="5">등록된 사용자가 없습니다.</td></tr>';
+  } catch (err) { toast('등록부를 불러오지 못했습니다: ' + err.message, 'error'); }
+}
+</script>
+</body>
 </html>

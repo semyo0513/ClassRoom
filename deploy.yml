@@ -1,0 +1,29 @@
+name: Deploy to Apps Script
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Node 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: clasp 설치
+        run: npm install -g @google/clasp
+
+      - name: clasp 인증정보 복원
+        run: echo '${{ secrets.CLASPRC_JSON }}' > ~/.clasprc.json
+
+      - name: Apps Script로 코드 반영 (push)
+        run: clasp push -f
+
+      - name: 기존 배포에 새 버전 반영 (deploy)
+        run: clasp deploy -i "${{ secrets.CLASP_DEPLOYMENT_ID }}" -d "auto-deploy ${{ github.sha }}"
